@@ -3,31 +3,26 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.decomposition import PCA
 
 df = pd.read_csv('dados_municipais_consolidados.csv', encoding='latin1')
 
-variaveis_idh = [
-    'idhm', 'idhm_e', 'idhm_l', 'idhm_r',
-    'renda_pc', 'indice_gini', 'expectativa_vida', 'expectativa_anos_estudo'
-]
+# Carregar os dados
+df_analise = pd.read_csv('dados_municipais_consolidados.csv', encoding='latin1')
 
-variaveis_desempenho = [
-    'taxa_analfabetismo_15_mais',
-    'taxa_freq_liquida_medio',
-    'taxa_freq_fundamental_15_17',
-    'taxa_atraso_1_fundamental',
-    'indice_escolaridade'
-]
-
-colunas_analise = variaveis_idh + variaveis_desempenho
-
-df_analise = df[colunas_analise].copy()
-
+# Remover dados nulos
 df_analise.dropna(inplace=True)
 
-n_amostra = min(1000, len(df_analise))
+# Inicializar o LabelEncoder
+label_encoder = LabelEncoder()
+
+# Identificar e transformar colunas categóricas
+for col in df_analise.select_dtypes(include=['object']).columns:
+    df_analise[col] = label_encoder.fit_transform(df_analise[col])
+
+n_amostra = len(df_analise)
+print(n_amostra)
 df_amostra = df_analise.sample(n=n_amostra, random_state=42)
 
 scaler = StandardScaler()
@@ -48,23 +43,16 @@ print(f"\nVariância total explicada pelas 2 primeiras componentes: {sum(varianc
 
 loadings = pd.DataFrame(
     pca.components_.T,
-    columns=['PC1', 'PC2'],
-    index=colunas_analise
+    columns=['PC1', 'PC2']
 )
 print("\nCargas fatoriais (loadings):\n")
 print(loadings.round(3))
 
 plt.figure(figsize=(10, 7))
 sns.scatterplot(x='PC1', y='PC2', data=df_amostra, alpha=0.7)
-plt.title('Projeção PCA (amostra de 1000): IDH + Desempenho Escolar')
+plt.title('Projeção PCA: IDH + Desempenho Escolar')
 plt.xlabel(f'Componente Principal 1 ({variancia_explicada[0]*100:.1f}% var.)')
 plt.ylabel(f'Componente Principal 2 ({variancia_explicada[1]*100:.1f}% var.)')
-plt.tight_layout()
-plt.show()
-
-plt.figure(figsize=(8, 6))
-sns.heatmap(loadings, annot=True, cmap='coolwarm', center=0)
-plt.title('Cargas Fatoriais (Loadings) das Variáveis nas Duas Primeiras Componentes')
 plt.tight_layout()
 plt.show()
 
